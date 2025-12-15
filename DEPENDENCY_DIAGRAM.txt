@@ -1,0 +1,160 @@
+CROSS-PACKAGE DEPENDENCY DIAGRAM
+================================
+
+CONFIGURATION LOAD PHASES:
+========================
+
+Phase 1: Load All Packages (Alphabetical Order)
+----------------------------------------------
+air_quality.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+cameras.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+chores.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+device_health.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+garage_door_monitoring.yaml
+  ├─ input_number (self-contained)
+  ├─ input_boolean (self-contained)
+  ├─ input_text (self-contained)
+  ├─ automation (self-contained)
+  ├─ script (self-contained)
+  └─ template (self-contained)
+  
+  *** NO CROSS-PACKAGE DEPENDENCIES ***
+
+known_batteries.yaml
+light_groups.yaml
+notifications.yaml
+
+presence.yaml
+  ├─ alarm_control_panel.manual
+  │   └─ Used by: routines.yaml (VALID)
+  ├─ light.group_entry_after_dark
+  │   └─ Used by: presence.yaml (self-contained)
+  ├─ automation (references input_boolean.mode_guest)
+  │   └─ CROSS-PACKAGE REFERENCE ⚠️
+  └─ All other references (self-contained)
+
+remotes.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+routines.yaml
+  ├─ script.good_night
+  ├─ References: input_boolean.mode_guest
+  │   └─ CROSS-PACKAGE REFERENCE ⚠️
+  │      Defined in: input_boolean/modes.yaml (loads later)
+  └─ References: alarm_control_panel.home_alarm
+      └─ Defined in: presence.yaml (earlier in load order) ✓
+
+security_lights.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+towner_notifications.yaml
+  ├─ input_boolean (self-contained)
+  └─ automations (self-contained)
+
+weather.yaml
+
+
+Phase 2: Load Standalone Configurations (AFTER packages)
+-------------------------------------------------------
+input_boolean/
+  ├─ modes.yaml
+  │   └─ input_boolean.mode_guest (used by routines.yaml ✓)
+  │       (also used by presence.yaml ✓)
+  └─ brief_module_toggles.yaml
+      ├─ brief_calendar_enabled
+      ├─ brief_weather_enabled
+      ├─ brief_device_health_enabled
+      ├─ brief_meals_enabled
+      ├─ brief_commute_enabled
+      ├─ brief_chores_enabled
+      ├─ brief_appliances_enabled
+      ├─ brief_garbage_enabled
+      └─ brief_air_quality_enabled
+
+
+DEPENDENCY MAP
+==============
+
+            ┌─────────────────────────────────────┐
+            │   input_boolean/modes.yaml          │
+            │  (Standalone Config)                │
+            │                                     │
+            │ input_boolean.mode_guest            │
+            └──────────────┬──────────────────────┘
+                           │
+                  ┌────────┴──────────┐
+                  │                   │
+                  ▼                   ▼
+        ┌──────────────────┐ ┌──────────────────┐
+        │routines.yaml     │ │ presence.yaml    │
+        │(Package)         │ │ (Package)        │
+        │                  │ │                  │
+        │Line 17: uses     │ │ Lines 32,54,129: │
+        │mode_guest        │ │ uses mode_guest  │
+        │                  │ │                  │
+        │Also references   │ │ Also references  │
+        │alarm_panel from  │ │ alarm_panel self │
+        │presence.yaml ✓   │ │ defined ✓        │
+        └──────────────────┘ └──────────────────┘
+
+
+        ┌──────────────────────────────┐
+        │ garage_door_monitoring.yaml  │
+        │ (Package)                    │
+        │                              │
+        │ input_boolean:               │
+        │  - garage_door_notify_sent   │
+        │  - garage_door_monitoring    │
+        │                              │
+        │ input_text:                  │
+        │  - garage_door_notify_tag    │
+        │                              │
+        │ ALL SELF-CONTAINED           │
+        │ NO EXTERNAL DEPENDENCIES ✓   │
+        └──────────────────────────────┘
+
+
+LEGEND
+======
+✓ = OK / Correctly Configured
+⚠️ = Works but Architectural Concern (cross-file dependency)
+
+
+SUMMARY
+=======
+
+Total Packages: 14 files
+Self-Contained Packages: 12 (air_quality, cameras, chores, device_health, 
+                              garage_door_monitoring, known_batteries, 
+                              light_groups, notifications, remotes, 
+                              security_lights, towner_notifications, weather)
+
+Cross-Package References: 1 (input_boolean.mode_guest)
+  - Defined in standalone config (loads later)
+  - Used in 2 packages (routines.yaml, presence.yaml)
+  - Works via lazy template evaluation
+  - Recommended fix: Move to package file
+
+Critical Issues Found: NONE
+  - Configuration loads correctly
+  - All references resolve at runtime
+  - All service calls are valid
+
+Architectural Concerns: 1
+  - Cross-boundary dependency (mode_guest)
+  - Should be in a package for consistency
+  - Low risk but affects maintainability

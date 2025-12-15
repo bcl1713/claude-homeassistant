@@ -1,62 +1,35 @@
-# Example Home Assistant Configuration File
-# This is a minimal example configuration for demonstration purposes
-
-# Basic Home Assistant configuration
 homeassistant:
-  name: Home
-  latitude: 37.7749
-  longitude: -122.4194
-  elevation: 0
-  unit_system: metric
-  currency: USD
-  country: US
-  time_zone: America/Los_Angeles
+  packages: !include_dir_named packages
 
-# Load frontend
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
 frontend:
+  themes: !include_dir_merge_named themes
 
-# Enable configuration panel
-config:
-
-# Enable the map panel
-map:
-
-# Enable mobile app integration
-mobile_app:
-
-# Enable history and logbook
-history:
-logbook:
-
-# Enable system health
-system_health:
-
-# Include automations and scripts
-automation: !include automations.yaml
-script: !include scripts.yaml
+automation: !include_dir_merge_list automation
+input_boolean: !include_dir_merge_named input_boolean
 scene: !include scenes.yaml
 
-# Example integrations
-weather:
-  - platform: met
-    name: Local Weather
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.86.2
 
-# Example groups
-group:
-  living_room:
-    name: "Living Room"
-    entities:
-      - light.living_room_main
-      - switch.living_room_fan
+google_assistant:
+  project_id: homeassistant-32654
+  service_account: !include SERVICE_ACCOUNT.json
+  report_state: true
 
-# Example sensors
-sensor:
-  - platform: time_date
-    display_options:
-      - 'time'
-      - 'date'
+# Custom Configs Below
+recorder: !include recorder.yaml
 
-# Example binary sensors
-binary_sensor:
-  - platform: workday
-    country: US
+logbook: !include logbook.yaml
+
+notify:
+  - platform: group
+    name: all_mobile_devices
+    services:
+      - service: mobile_app_brian_phone
+      - service: mobile_app_hester_phone
