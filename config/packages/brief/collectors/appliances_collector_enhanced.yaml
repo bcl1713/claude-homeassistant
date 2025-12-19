@@ -27,18 +27,16 @@ script:
       # Check if required entities exist
       has_dishwasher_state: "{{ states('sensor.dishwasher_operation_state') not in ['unknown', 'unavailable'] }}"
 
-      # Optional entities for maintenance checking
-      has_salt_nearly_empty: "{{ states('binary_sensor.014030536224000994_dishcare_dishwasher_event_saltnearlyempty') not in ['unknown', 'unavailable'] }}"
-      has_salt_empty: "{{ states('binary_sensor.014030536224000994_dishcare_dishwasher_event_saltempty') not in ['unknown', 'unavailable'] }}"
-      has_rinse_nearly_empty: "{{ states('binary_sensor.014030536224000994_dishcare_dishwasher_event_rinseaidnearlyempty') not in ['unknown', 'unavailable'] }}"
-      has_rinse_empty: "{{ states('binary_sensor.014030536224000994_dishcare_dishwasher_event_rinseaidempty') not in ['unknown', 'unavailable'] }}"
+      # Maintenance sensors for salt and rinse aid
+      has_salt_sensor: "{{ states('sensor.dishwasher_salt_nearly_empty') not in ['unknown', 'unavailable'] }}"
+      has_rinse_sensor: "{{ states('sensor.dishwasher_rinse_aid_nearly_empty') not in ['unknown', 'unavailable'] }}"
 
       # Check if required entities are available
       all_required_present: "{{ has_dishwasher_state }}"
 
       # Check for maintenance sensors (optional but preferred)
       has_maintenance_sensors: >
-        {{ has_salt_nearly_empty or has_salt_empty or has_rinse_nearly_empty or has_rinse_empty }}
+        {{ has_salt_sensor or has_rinse_sensor }}
 
     sequence:
       # Collect appliances data - always runs when called by orchestration
@@ -58,16 +56,14 @@ script:
 
           - variables:
               needs_salt: >
-                {%- if has_salt_nearly_empty or has_salt_empty -%}
-                  {{ is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_saltnearlyempty', 'on') or
-                     is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_saltempty', 'on') }}
+                {%- if has_salt_sensor -%}
+                  {{ states('sensor.dishwasher_salt_nearly_empty') == 'on' }}
                 {%- else -%}
                   false
                 {%- endif -%}
               needs_rinse_aid: >
-                {%- if has_rinse_nearly_empty or has_rinse_empty -%}
-                  {{ is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_rinseaidnearlyempty', 'on') or
-                     is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_rinseaidempty', 'on') }}
+                {%- if has_rinse_sensor -%}
+                  {{ states('sensor.dishwasher_rinse_aid_nearly_empty') == 'on' }}
                 {%- else -%}
                   false
                 {%- endif -%}

@@ -43,13 +43,11 @@ script:
       dishwasher_running: >
         {{ dishwasher_available and
            states('sensor.dishwasher_operation_state') == "run" }}
-      # New dishwasher status sensors
+      # Dishwasher maintenance sensors - checks if salt or rinse aid is low
       needs_salt: >
-        {{ is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_saltnearlyempty', 'on') or
-           is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_saltempty', 'on') }}
+        {{ states('sensor.dishwasher_salt_nearly_empty') == 'on' }}
       needs_rinse_aid: >
-        {{ is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_rinseaidnearlyempty', 'on') or
-           is_state('binary_sensor.014030536224000994_dishcare_dishwasher_event_rinseaidempty', 'on') }}
+        {{ states('sensor.dishwasher_rinse_aid_nearly_empty') == 'on' }}
     sequence:
       - variables:
           appliance_data:
