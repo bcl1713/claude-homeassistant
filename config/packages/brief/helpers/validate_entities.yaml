@@ -8,7 +8,7 @@
 # Usage:
 #   - service: script.brief_validate_entity
 #     data:
-#       entity_id: "sensor.dishwasher_state"
+#       entity_id: "sensor.dishwasher_operation_state"
 #   Response: result.valid (true/false), result.state (if valid)
 #
 # Last Updated: 2025-11-07
@@ -20,8 +20,8 @@ script:
     mode: parallel
     fields:
       entity_id:
-        description: "Entity ID to validate (e.g., sensor.dishwasher_state)"
-        example: "sensor.dishwasher_state"
+        description: "Entity ID to validate (e.g., sensor.dishwasher_operation_state)"
+        example: "sensor.dishwasher_operation_state"
       fallback_value:
         description: "Optional fallback value if entity unavailable"
         example: "N/A"
@@ -77,7 +77,7 @@ script:
           chores_optional: []
 
           appliances_required:
-            - sensor.dishwasher_state
+            - sensor.dishwasher_operation_state
           appliances_optional:
             - binary_sensor.014030536224000994_dishcare_dishwasher_event_saltnearlyempty
             - binary_sensor.014030536224000994_dishcare_dishwasher_event_saltempty

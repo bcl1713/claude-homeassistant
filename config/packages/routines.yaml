@@ -15,13 +15,13 @@ script:
       # Set up variables we'll need
       - variables:
           is_mode_guest: "{{ is_state('input_boolean.mode_guest', 'on') }}"
-          dishwasher_state: "{{ states('sensor.dishwasher_state') }}"
+          dishwasher_state: "{{ states('sensor.dishwasher_operation_state') }}"
           is_dishwasher_available: >
-            {{ not is_state('sensor.dishwasher_state', 'unavailable') and 
-               not is_state('sensor.dishwasher_state', 'unknown') }}
+            {{ not is_state('sensor.dishwasher_operation_state', 'unavailable') and
+               not is_state('sensor.dishwasher_operation_state', 'unknown') }}
           is_dishwasher_running: >
-            {{ is_dishwasher_available and 
-               states('sensor.dishwasher_state') == "BSH.Common.EnumType.OperationState.Run" }}
+            {{ is_dishwasher_available and
+               states('sensor.dishwasher_operation_state') == "run" }}
 
       # Always: Turn on bedside lamps to 50% with a nice transition
       - service: light.turn_on
@@ -154,8 +154,8 @@ script:
                 event_data:
                   action: continue_anyway
               - platform: state
-                entity_id: sensor.dishwasher_state
-                to: "BSH.Common.EnumType.OperationState.Run"
+                entity_id: sensor.dishwasher_operation_state
+                to: "run"
             continue_on_timeout: true
             timeout: "00:05:00"
 
