@@ -9,7 +9,9 @@
 script:
   good_night:
     alias: "Good Night Routine"
-    description: "Shuts down the house for the night, adjusts lighting, and secures the home"
+    description:
+      "Shuts down the house for the night, adjusts lighting, and secures the
+      home"
     mode: restart
     sequence:
       # Set up variables we'll need
@@ -17,7 +19,8 @@ script:
           is_mode_guest: "{{ is_state('input_boolean.mode_guest', 'on') }}"
           dishwasher_state: "{{ states('sensor.dishwasher_operation_state') }}"
           is_dishwasher_available: >
-            {{ not is_state('sensor.dishwasher_operation_state', 'unavailable') and
+            {{ not is_state('sensor.dishwasher_operation_state', 'unavailable')
+            and
                not is_state('sensor.dishwasher_operation_state', 'unknown') }}
           is_dishwasher_running: >
             {{ is_dishwasher_available and
@@ -27,8 +30,8 @@ script:
       - service: light.turn_on
         target:
           entity_id:
-            - light.bedroom_table_lamp_brian
-            - light.bedroom_table_lamp_hester
+            - light.master_bedroom_lamp_brian
+            - light.master_bedroom_lamp_hester
         data:
           brightness_pct: 50
           transition: 3
@@ -37,8 +40,8 @@ script:
       - service: light.turn_off
         target:
           entity_id:
-            - light.outdoor_front_yard
-            - light.outdoor_back_yard
+            - light.front_yard
+            - light.back_yard
 
       # If Guest Mode is OFF: Turn off media players that are not in bedrooms
       - if:
@@ -134,8 +137,8 @@ script:
           - service: notify.all_mobile_devices
             data:
               message: >
-                Dishwasher is not running.
-                Kitchen lights will stay on until dishwasher starts or you continue.
+                Dishwasher is not running. Kitchen lights will stay on until
+                dishwasher starts or you continue.
               data:
                 actions:
                   - action: "continue_anyway"

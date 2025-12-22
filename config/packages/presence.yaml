@@ -9,7 +9,7 @@ light:
   - platform: group
     name: group_entry_after_dark
     entities:
-      - light.outdoor_front_yard
+      - light.front_yard
       - light.hallway_entry
       - light.hallway_corridor
 
@@ -88,7 +88,8 @@ automation:
           - service: logbook.log
             data:
               name: "Front Door"
-              message: "Door unlocked due to arrival when system is in away mode"
+              message:
+                "Door unlocked due to arrival when system is in away mode"
       - service: alarm_control_panel.alarm_arm_home
         target:
           entity_id: alarm_control_panel.home_alarm
