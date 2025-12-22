@@ -14,7 +14,7 @@ automation:
     trigger:
       - platform: state
         entity_id:
-          - binary_sensor.camera_front_drive_bus_occupancy
+          - binary_sensor.driveway_camera_occupancy_bus
         from: "off"
         to: "on"
     condition:
