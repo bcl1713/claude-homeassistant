@@ -16,18 +16,21 @@ This repository manages Home Assistant configuration files with automated valida
 ## Available Commands
 
 ### Configuration Management
+
 - `make pull` - Pull latest config from Home Assistant instance
 - `make push` - Push local config to Home Assistant (with validation)
 - `make backup` - Create backup of current config
 - `make validate` - Run all validation tests
 
 ### Validation Tools
+
 - `python tools/run_tests.py` - Run complete validation suite
 - `python tools/yaml_validator.py` - YAML syntax validation only
 - `python tools/reference_validator.py` - Entity/device reference validation
 - `python tools/ha_official_validator.py` - Official HA configuration validation
 
 ### Entity Discovery Tools
+
 - `make entities` - Explore available Home Assistant entities
 - `python tools/entity_explorer.py` - Entity registry parser and explorer
   - `--search TERM` - Search entities by name, ID, or device class
@@ -60,6 +63,7 @@ This project includes comprehensive validation to prevent invalid configurations
 ## Entity Registry
 
 The system tracks entities across these domains:
+
 - alarm_control_panel, binary_sensor, button, camera, climate
 - device_tracker, event, image, light, lock, media_player
 - number, person, scene, select, sensor, siren, switch
@@ -94,17 +98,20 @@ The system tracks entities across these domains:
 ## Troubleshooting
 
 ### Validation Fails
+
 1. Check YAML syntax errors first
 2. Verify entity references exist in `.storage/` files
 3. Run individual validators to isolate issues
 4. Check HA logs if official validation fails
 
 ### SSH Issues
+
 1. Verify SSH key permissions: `chmod 600 ~/.ssh/your_key`
 2. Test connection: `ssh your_homeassistant_host`
 3. Check SSH config in `~/.ssh/config`
 
 ### Missing Dependencies
+
 1. Activate venv: `source venv/bin/activate`
 2. Install requirements: `pip install homeassistant voluptuous pyyaml`
 
@@ -119,45 +126,46 @@ This system ensures you can confidently manage Home Assistant configurations wit
 
 ## Entity Naming Convention
 
-This Home Assistant setup uses a **standardized entity naming convention** for multi-location deployments:
+This Home Assistant setup uses a **standardized entity naming convention** for single-location deployments:
 
-### **Format: `location_room_device_sensor`**
+### **Format: `room_device_sensor`**
 
 **Structure:**
-- **location**: `home`, `office`, `cabin`, etc.
+
 - **room**: `basement`, `kitchen`, `living_room`, `main_bedroom`, `guest_bedroom`, `driveway`, etc.
 - **device**: `motion`, `heatpump`, `sonos`, `lock`, `vacuum`, `water_heater`, `alarm`, etc.
 - **sensor**: `battery`, `tamper`, `status`, `temperature`, `humidity`, `door`, `running`, etc.
 
 ### **Examples:**
+
 ```
-binary_sensor.home_basement_motion_battery
-binary_sensor.home_basement_motion_tamper
-media_player.home_kitchen_sonos
-media_player.office_main_bedroom_sonos
-climate.home_living_room_heatpump
-climate.office_living_room_thermostat
-lock.home_front_door_august
-sensor.office_driveway_camera_battery
-vacuum.home_roborock
-vacuum.office_roborock
+binary_sensor.basement_motion_battery
+binary_sensor.basement_motion_tamper
+media_player.kitchen
+media_player.master_bedroom
+climate.living_room_thermostat
+lock.front_door
+sensor.driveway_camera_battery
+vacuum.kitchen_vacuum_status
 ```
 
 ### **Benefits:**
-- **Clear location identification** - no ambiguity between properties
+
 - **Consistent structure** - easy to predict entity names
 - **Automation-friendly** - simple to target location-specific devices
 - **Scalable** - supports additional locations or rooms
 
 ### **Implementation:**
+
 - All location-based entities follow this convention
 - Legacy entities have been systematically renamed
 - New entities should follow this pattern
-- Vendor prefixes (aquanta_, august_, etc.) are replaced with descriptive device names
+- Vendor prefixes (aquanta*, august*, etc.) are replaced with descriptive device names
 
 ### **Claude Code Integration:**
+
 - When creating automations, always ask the user for input if there are multiple choices for sensors or devices
 - Use the entity explorer tools to discover available entities before writing automations
 - Follow the naming convention when suggesting entity names in automations
 
-- All python tools need to be run with  `source venv/bin/activate && python <tool_path>`
+- All python tools need to be run with `source venv/bin/activate && python <tool_path>`
