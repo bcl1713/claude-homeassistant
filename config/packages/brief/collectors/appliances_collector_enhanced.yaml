@@ -9,7 +9,8 @@
 script:
   brief_collect_appliances_safe:
     alias: "Collect Appliances (Safe with Validation)"
-    description: "Gathers appliance status with entity validation and error handling"
+    description:
+      "Gathers appliance status with entity validation and error handling"
     mode: parallel
     fields:
       timeout_seconds:
@@ -25,11 +26,17 @@ script:
       fallback_payload: "Appliance status unavailable"
 
       # Check if required entities exist
-      has_dishwasher_state: "{{ states('sensor.dishwasher_operation_state') not in ['unknown', 'unavailable'] }}"
+      has_dishwasher_state:
+        "{{ states('sensor.kitchen_dishwasher_operation_state') not in
+        ['unknown', 'unavailable'] }}"
 
       # Maintenance sensors for salt and rinse aid
-      has_salt_sensor: "{{ states('sensor.dishwasher_salt_nearly_empty') not in ['unknown', 'unavailable'] }}"
-      has_rinse_sensor: "{{ states('sensor.dishwasher_rinse_aid_nearly_empty') not in ['unknown', 'unavailable'] }}"
+      has_salt_sensor:
+        "{{ states('sensor.kitchen_dishwasher_salt_nearly_empty') not in
+        ['unknown', 'unavailable'] }}"
+      has_rinse_sensor:
+        "{{ states('sensor.kitchen_dishwasher_rinse_aid_nearly_empty') not in
+        ['unknown', 'unavailable'] }}"
 
       # Check if required entities are available
       all_required_present: "{{ has_dishwasher_state }}"
@@ -46,25 +53,32 @@ script:
         then:
           # Required entity present - collect normally
           - variables:
-              dishwasher_state: "{{ states('sensor.dishwasher_operation_state') }}"
+              dishwasher_state:
+                "{{ states('sensor.kitchen_dishwasher_operation_state') }}"
               dishwasher_available: >
-                {{ not is_state('sensor.dishwasher_operation_state', 'unavailable') and
-                   not is_state('sensor.dishwasher_operation_state', 'unknown') }}
+                {{ not is_state('sensor.kitchen_dishwasher_operation_state',
+                'unavailable') and
+                   not is_state('sensor.kitchen_dishwasher_operation_state',
+                'unknown')
+                }}
               dishwasher_running: >
                 {{ dishwasher_available and
-                   states('sensor.dishwasher_operation_state') == "run" }}
+                   states('sensor.kitchen_dishwasher_operation_state') == "run"
+                }}
 
           - variables:
               needs_salt: >
                 {%- if has_salt_sensor -%}
-                  {{ states('sensor.dishwasher_salt_nearly_empty') == 'on' }}
+                  {{ states('sensor.kitchen_dishwasher_salt_nearly_empty') ==
+                'on' }}
                 {%- else -%}
                   false
                 {%- endif -%}
               needs_rinse_aid: >
                 {%- if has_rinse_sensor -%}
-                  {{ states('sensor.dishwasher_rinse_aid_nearly_empty') == 'on' }}
-                {%- else -%}
+                  {{ states('sensor.kitchen_dishwasher_rinse_aid_nearly_empty')
+                == 'on'
+                }} {%- else -%}
                   false
                 {%- endif -%}
 
@@ -91,8 +105,10 @@ script:
           - variables:
               appliance_data:
                 validation_status: "failed"
-                error_message: "Missing required entity: sensor.dishwasher_operation_state"
-                missing_entities: ["sensor.dishwasher_operation_state"]
+                error_message:
+                  "Missing required entity:
+                  sensor.kitchen_dishwasher_operation_state"
+                missing_entities: ["sensor.kitchen_dishwasher_operation_state"]
                 fallback_message: "{{ fallback_payload }}"
                 dishwasher:
                   state: "unknown"
@@ -118,7 +134,8 @@ script:
                   {
                     "timestamp": now().isoformat(),
                     "status": "validation_error",
-                    "missing_entities": ["sensor.dishwasher_operation_state"],
+                    "missing_entities":
+                ["sensor.kitchen_dishwasher_operation_state"],
                     "help": "Check entity ID in Developer Tools > States"
                   } | tojson
                 }}

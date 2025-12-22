@@ -48,13 +48,13 @@ automation:
     description: "Notify on doorbell press"
     trigger:
       - platform: state
-        entity_id: binary_sensor.doorbell_front_button_pressed
+        entity_id: binary_sensor.front_door_doorbell_button_pressed
         to: "on"
     action:
       # Step 1: Take a snapshot from the doorbell camera
       - service: camera.snapshot
         target:
-          entity_id: camera.front_door_camera
+          entity_id: camera.front_door_doorbell_camera
         data:
           filename: "/config/www/doorbell/doorbell_snapshot.jpg"
 
@@ -67,7 +67,7 @@ automation:
         data:
           message: "Doorbell pressed"
           data:
-            image: "/api/camera_proxy/camera.front_door_camera"
+            image: "/api/camera_proxy/camera.front_door_doorbell_camera"
             tag: "doorbell-press-{{ now().timestamp() | int }}"
             when: "{{ now().timestamp() | int }}"
             priority: "high"
