@@ -89,6 +89,7 @@ config/.shopping_list.json
 config/.google.token
 config/nest/
 config/.cloud/
+.ha_run.lock
 
 # Custom components (managed by HACS)
 config/custom_components/
