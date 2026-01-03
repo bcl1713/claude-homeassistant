@@ -438,12 +438,16 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_manual_override_active
         state: "off"
-      # Only trigger if the state change is significant (avoid automation echoes)
+      # Only trigger if the attribute change is significant (avoid automation echoes)
       - condition: template
         value_template: >
+          {% set attr = trigger.to_state.attributes.get(trigger.attribute) %} {%
+          set old_attr = trigger.from_state.attributes.get(trigger.attribute) %}
           {{ trigger.from_state is not none and
              trigger.to_state is not none and
-             trigger.from_state.state != trigger.to_state.state }}
+             attr is not none and
+             old_attr is not none and
+             attr != old_attr }}
     action:
       - service: input_boolean.turn_on
         target:
