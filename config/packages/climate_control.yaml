@@ -441,13 +441,13 @@ automation:
       # Only trigger if the attribute change is significant (avoid automation echoes)
       - condition: template
         value_template: >
-          {% set attr = trigger.to_state.attributes.get(trigger.attribute) %} {%
-          set old_attr = trigger.from_state.attributes.get(trigger.attribute) %}
-          {{ trigger.from_state is not none and
+          {% set high_changed = trigger.to_state.attributes.target_temp_high !=
+          trigger.from_state.attributes.target_temp_high %} {% set low_changed =
+          trigger.to_state.attributes.target_temp_low !=
+          trigger.from_state.attributes.target_temp_low %} {{ trigger.from_state
+          is not none and
              trigger.to_state is not none and
-             attr is not none and
-             old_attr is not none and
-             attr != old_attr }}
+             (high_changed or low_changed) }}
     action:
       - service: input_boolean.turn_on
         target:
