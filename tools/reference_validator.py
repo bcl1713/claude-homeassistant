@@ -181,11 +181,10 @@ class ReferenceValidator:
     def should_skip_entity_validation(self, value: str) -> bool:
         """Check if entity reference should be skipped during validation."""
         return (
-            value.startswith("!")
-            or self.is_uuid_format(value)  # HA tags like !input, !secret
-            or self.is_template(value)  # UUID format (device-based)
-            or value  # Template expressions
-            in self.SPECIAL_KEYWORDS  # Special keywords like "all", "none"
+            value.startswith("!")  # HA tags like !input, !secret
+            or self.is_uuid_format(value)  # UUID format (device-based)
+            or self.is_template(value)  # Template expressions
+            or value in self.SPECIAL_KEYWORDS  # Special keywords like "all", "none"
         )
 
     def extract_entity_references(self, data: Any, path: str = "") -> Set[str]:
@@ -273,11 +272,11 @@ class ReferenceValidator:
                 if key in ["device_id", "device_ids"]:
                     if isinstance(value, str):
                         # Skip blueprint inputs and other HA tags
-                        if not value.startswith("!"):
+                        if not value.startswith("!") and not self.is_template(value):
                             devices.add(value)
                     elif isinstance(value, list):
                         for device in value:
-                            if isinstance(device, str) and not device.startswith("!"):
+                            if isinstance(device, str) and not device.startswith("!") and not self.is_template(device):
                                 devices.add(device)
                 else:
                     devices.update(self.extract_device_references(value))
@@ -297,7 +296,7 @@ class ReferenceValidator:
                 if key in ["area_id", "area_ids"]:
                     if isinstance(value, str):
                         # Skip blueprint inputs and other HA tags
-                        if not value.startswith("!"):
+                        if not value.startswith("!") and not self.is_template(value):
                             areas.add(value)
                     elif isinstance(value, list):
                         for area in value:
