@@ -1,0 +1,519 @@
+# packages/climate_control.yaml
+#
+# Smart HVAC Automation System
+#
+# Features:
+# - Intelligent time-based temperature scheduling
+# - Separate heating and cooling setpoints for all time periods
+# - Presence-aware away mode with energy-saving setbacks
+# - Manual override detection with 2-hour hold behavior
+# - Guest mode integration (respects existing presence system)
+# - Fully configurable via UI helpers
+#
+# Schedule:
+# - Weekday mornings: 5:00 AM warmup (Mon-Fri)
+# - Weekend mornings: 7:00 AM warmup (Sat-Sun)
+# - Daytime: 9:00 AM comfortable temps
+# - Bedtime: 9:00 PM comfort warmup
+# - Sleep: 10:30 PM cooler temps for better sleep
+# - Away: Energy-saving setbacks when nobody home
+#
+# Integration:
+# - Works with climate.dining_room_thermostat (Ecobee)
+# - Integrates with existing zone.home presence detection
+# - Respects input_boolean.mode_guest for guest handling
+# - Uses heat_cool (auto) mode year-round
+
+homeassistant:
+  customize:
+    package.node_anchors:
+      # Default heating setpoints (winter)
+      heat_morning: &heat_morning 70
+      heat_day: &heat_day 68
+      heat_bedtime: &heat_bedtime 70
+      heat_sleep: &heat_sleep 66
+      heat_away: &heat_away 62
+      # Default cooling setpoints (summer)
+      cool_morning: &cool_morning 74
+      cool_day: &cool_day 76
+      cool_bedtime: &cool_bedtime 72
+      cool_sleep: &cool_sleep 72
+      cool_away: &cool_away 78
+
+# Helper entities for temperature setpoints
+input_number:
+  climate_heat_morning:
+    name: "Climate Heat - Morning"
+    min: 60
+    max: 80
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer-chevron-up
+    initial: *heat_morning
+
+  climate_heat_day:
+    name: "Climate Heat - Daytime"
+    min: 60
+    max: 80
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer
+    initial: *heat_day
+
+  climate_heat_bedtime:
+    name: "Climate Heat - Bedtime"
+    min: 60
+    max: 80
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer-chevron-up
+    initial: *heat_bedtime
+
+  climate_heat_sleep:
+    name: "Climate Heat - Sleep"
+    min: 60
+    max: 80
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer-chevron-down
+    initial: *heat_sleep
+
+  climate_heat_away:
+    name: "Climate Heat - Away"
+    min: 55
+    max: 75
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:thermometer-low
+    initial: *heat_away
+
+  climate_cool_morning:
+    name: "Climate Cool - Morning"
+    min: 65
+    max: 85
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:snowflake
+    initial: *cool_morning
+
+  climate_cool_day:
+    name: "Climate Cool - Daytime"
+    min: 65
+    max: 85
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:snowflake
+    initial: *cool_day
+
+  climate_cool_bedtime:
+    name: "Climate Cool - Bedtime"
+    min: 65
+    max: 85
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:snowflake
+    initial: *cool_bedtime
+
+  climate_cool_sleep:
+    name: "Climate Cool - Sleep"
+    min: 65
+    max: 85
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:snowflake
+    initial: *cool_sleep
+
+  climate_cool_away:
+    name: "Climate Cool - Away"
+    min: 70
+    max: 85
+    step: 1
+    unit_of_measurement: "°F"
+    icon: mdi:snowflake-thermometer
+    initial: *cool_away
+
+# State tracking helpers
+input_boolean:
+  climate_automation_enabled:
+    name: "Climate Automation"
+    icon: mdi:thermostat-auto
+    initial: true
+
+  climate_manual_override_active:
+    name: "Climate Manual Override Active"
+    icon: mdi:account-edit
+    initial: false
+
+# Override timer
+input_datetime:
+  climate_override_expiry:
+    name: "Climate Override Expiry"
+    has_date: true
+    has_time: true
+
+# Automations
+automation:
+  # ============================================================================
+  # TIME-BASED SCHEDULE AUTOMATIONS
+  # ============================================================================
+
+  - alias: "climate_schedule_morning_weekday"
+    id: "climate_schedule_morning_weekday"
+    description: "Set morning temperature for weekdays (Mon-Fri)"
+    trigger:
+      - platform: time
+        at: "05:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+      - condition: time
+        weekday:
+          - mon
+          - tue
+          - wed
+          - thu
+          - fri
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.dining_room_thermostat
+        data:
+          hvac_mode: heat_cool
+          target_temp_high: >
+            {{ states('input_number.climate_cool_morning') | float }}
+          target_temp_low: >
+            {{ states('input_number.climate_heat_morning') | float }}
+
+  - alias: "climate_schedule_morning_weekend"
+    id: "climate_schedule_morning_weekend"
+    description: "Set morning temperature for weekends (Sat-Sun)"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+      - condition: time
+        weekday:
+          - sat
+          - sun
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.dining_room_thermostat
+        data:
+          hvac_mode: heat_cool
+          target_temp_high: >
+            {{ states('input_number.climate_cool_morning') | float }}
+          target_temp_low: >
+            {{ states('input_number.climate_heat_morning') | float }}
+
+  - alias: "climate_schedule_day"
+    id: "climate_schedule_day"
+    description: "Set daytime temperature (all days)"
+    trigger:
+      - platform: time
+        at: "09:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.dining_room_thermostat
+        data:
+          hvac_mode: heat_cool
+          target_temp_high: >
+            {{ states('input_number.climate_cool_day') | float }}
+          target_temp_low: >
+            {{ states('input_number.climate_heat_day') | float }}
+
+  - alias: "climate_schedule_bedtime"
+    id: "climate_schedule_bedtime"
+    description: "Set bedtime comfort temperature (all days)"
+    trigger:
+      - platform: time
+        at: "21:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.dining_room_thermostat
+        data:
+          hvac_mode: heat_cool
+          target_temp_high: >
+            {{ states('input_number.climate_cool_bedtime') | float }}
+          target_temp_low: >
+            {{ states('input_number.climate_heat_bedtime') | float }}
+
+  - alias: "climate_schedule_sleep"
+    id: "climate_schedule_sleep"
+    description: "Set sleep temperature (all days)"
+    trigger:
+      - platform: time
+        at: "22:30:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.dining_room_thermostat
+        data:
+          hvac_mode: heat_cool
+          target_temp_high: >
+            {{ states('input_number.climate_cool_sleep') | float }}
+          target_temp_low: >
+            {{ states('input_number.climate_heat_sleep') | float }}
+
+  # ============================================================================
+  # PRESENCE-BASED AUTOMATIONS
+  # ============================================================================
+
+  - alias: "climate_away_mode_activate"
+    id: "climate_away_mode_activate"
+    description: "Activate energy-saving temps when everyone leaves"
+    trigger:
+      - platform: numeric_state
+        entity_id: zone.home
+        below: 1
+        for:
+          minutes: 5
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+      # Don't activate away mode if guest mode is on
+      - condition: state
+        entity_id: input_boolean.mode_guest
+        state: "off"
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.dining_room_thermostat
+        data:
+          hvac_mode: heat_cool
+          target_temp_high: >
+            {{ states('input_number.climate_cool_away') | float }}
+          target_temp_low: >
+            {{ states('input_number.climate_heat_away') | float }}
+
+  - alias: "climate_away_mode_deactivate"
+    id: "climate_away_mode_deactivate"
+    description: "Resume schedule when someone returns home"
+    trigger:
+      - platform: numeric_state
+        entity_id: zone.home
+        above: 0
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+    action:
+      # Determine which schedule to resume based on current time
+      - choose:
+          # Morning (5:00-8:59 weekdays, 7:00-8:59 weekends)
+          - conditions:
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: time
+                        after: "05:00:00"
+                        before: "09:00:00"
+                      - condition: time
+                        weekday:
+                          - mon
+                          - tue
+                          - wed
+                          - thu
+                          - fri
+                  - condition: and
+                    conditions:
+                      - condition: time
+                        after: "07:00:00"
+                        before: "09:00:00"
+                      - condition: time
+                        weekday:
+                          - sat
+                          - sun
+            sequence:
+              - service: climate.set_temperature
+                target:
+                  entity_id: climate.dining_room_thermostat
+                data:
+                  hvac_mode: heat_cool
+                  target_temp_high: >
+                    {{ states('input_number.climate_cool_morning') | float }}
+                  target_temp_low: >
+                    {{ states('input_number.climate_heat_morning') | float }}
+          # Daytime (9:00-20:59)
+          - conditions:
+              - condition: time
+                after: "09:00:00"
+                before: "21:00:00"
+            sequence:
+              - service: climate.set_temperature
+                target:
+                  entity_id: climate.dining_room_thermostat
+                data:
+                  hvac_mode: heat_cool
+                  target_temp_high: >
+                    {{ states('input_number.climate_cool_day') | float }}
+                  target_temp_low: >
+                    {{ states('input_number.climate_heat_day') | float }}
+          # Bedtime (21:00-22:29)
+          - conditions:
+              - condition: time
+                after: "21:00:00"
+                before: "22:30:00"
+            sequence:
+              - service: climate.set_temperature
+                target:
+                  entity_id: climate.dining_room_thermostat
+                data:
+                  hvac_mode: heat_cool
+                  target_temp_high: >
+                    {{ states('input_number.climate_cool_bedtime') | float }}
+                  target_temp_low: >
+                    {{ states('input_number.climate_heat_bedtime') | float }}
+        # Default: Sleep temps (22:30-04:59)
+        default:
+          - service: climate.set_temperature
+            target:
+              entity_id: climate.dining_room_thermostat
+            data:
+              hvac_mode: heat_cool
+              target_temp_high: >
+                {{ states('input_number.climate_cool_sleep') | float }}
+              target_temp_low: >
+                {{ states('input_number.climate_heat_sleep') | float }}
+
+  # ============================================================================
+  # MANUAL OVERRIDE MANAGEMENT
+  # ============================================================================
+
+  - alias: "climate_manual_override_detect"
+    id: "climate_manual_override_detect"
+    description: "Detect manual thermostat adjustments and activate hold"
+    trigger:
+      - platform: state
+        entity_id: climate.dining_room_thermostat
+        attribute: target_temp_high
+      - platform: state
+        entity_id: climate.dining_room_thermostat
+        attribute: target_temp_low
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "off"
+      # Only trigger if the state change is significant (avoid automation echoes)
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none and
+             trigger.to_state is not none and
+             trigger.from_state.state != trigger.to_state.state }}
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.climate_manual_override_active
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.climate_override_expiry
+        data:
+          datetime: >
+            {{ (now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S') }}
+      - service: logbook.log
+        data:
+          name: "Climate Control"
+          message: "Manual override detected. Holding for 2 hours."
+
+  - alias: "climate_manual_override_expire"
+    id: "climate_manual_override_expire"
+    description: "Resume automation after 2-hour manual override hold"
+    trigger:
+      - platform: template
+        value_template: >
+          {{ states('input_boolean.climate_manual_override_active') == 'on' and
+             states('input_datetime.climate_override_expiry') != 'unknown' and
+             now() >= strptime(states('input_datetime.climate_override_expiry'),
+                               '%Y-%m-%d %H:%M:%S') }}
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_automation_enabled
+        state: "on"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.climate_manual_override_active
+      - service: logbook.log
+        data:
+          name: "Climate Control"
+          message: "Manual override expired. Resuming automated schedule."
+
+  - alias: "climate_manual_override_clear"
+    id: "climate_manual_override_clear"
+    description: "Allow user to manually clear override via automation trigger"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.climate_automation_enabled
+        from: "off"
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.climate_manual_override_active
+        state: "on"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.climate_manual_override_active
+      - service: logbook.log
+        data:
+          name: "Climate Control"
+          message: "Manual override cleared by user."
+
+# Optional script for easy override clearing
+script:
+  climate_clear_override:
+    alias: "Clear Climate Override"
+    description:
+      "Manually clear the climate automation override and resume schedule"
+    sequence:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.climate_manual_override_active
+      - service: logbook.log
+        data:
+          name: "Climate Control"
+          message: "Manual override cleared via script."
