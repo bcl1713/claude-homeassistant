@@ -6,7 +6,7 @@
 # - Intelligent time-based temperature scheduling
 # - Separate heating and cooling setpoints for all time periods
 # - Presence-aware away mode with energy-saving setbacks
-# - Manual override detection with 2-hour hold behavior
+# - Manual changes persist until next scheduled automation
 # - Guest mode integration (respects existing presence system)
 # - Fully configurable via UI helpers
 #
@@ -139,18 +139,6 @@ input_boolean:
     icon: mdi:thermostat-auto
     initial: true
 
-  climate_manual_override_active:
-    name: "Climate Manual Override Active"
-    icon: mdi:account-edit
-    initial: false
-
-# Override timer
-input_datetime:
-  climate_override_expiry:
-    name: "Climate Override Expiry"
-    has_date: true
-    has_time: true
-
 # Automations
 automation:
   # ============================================================================
@@ -167,9 +155,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
       - condition: time
         weekday:
           - mon
@@ -198,9 +183,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
       - condition: time
         weekday:
           - sat
@@ -226,9 +208,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
     action:
       - service: climate.set_temperature
         target:
@@ -250,9 +229,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
     action:
       - service: climate.set_temperature
         target:
@@ -274,9 +250,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
     action:
       - service: climate.set_temperature
         target:
@@ -305,9 +278,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
       # Don't activate away mode if guest mode is on
       - condition: state
         entity_id: input_boolean.mode_guest
@@ -334,9 +304,6 @@ automation:
       - condition: state
         entity_id: input_boolean.climate_automation_enabled
         state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
     action:
       # Determine which schedule to resume based on current time
       - choose:
@@ -416,108 +383,3 @@ automation:
                 {{ states('input_number.climate_cool_sleep') | float }}
               target_temp_low: >
                 {{ states('input_number.climate_heat_sleep') | float }}
-
-  # ============================================================================
-  # MANUAL OVERRIDE MANAGEMENT
-  # ============================================================================
-
-  - alias: "climate_manual_override_detect"
-    id: "climate_manual_override_detect"
-    description: "Detect manual thermostat adjustments and activate hold"
-    trigger:
-      - platform: state
-        entity_id: climate.dining_room_thermostat
-        attribute: target_temp_high
-      - platform: state
-        entity_id: climate.dining_room_thermostat
-        attribute: target_temp_low
-    condition:
-      - condition: state
-        entity_id: input_boolean.climate_automation_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "off"
-      # Only trigger if the attribute change is significant (avoid automation echoes)
-      - condition: template
-        value_template: >
-          {% set high_changed = trigger.to_state.attributes.target_temp_high !=
-          trigger.from_state.attributes.target_temp_high %} {% set low_changed =
-          trigger.to_state.attributes.target_temp_low !=
-          trigger.from_state.attributes.target_temp_low %} {{ trigger.from_state
-          is not none and
-             trigger.to_state is not none and
-             (high_changed or low_changed) }}
-    action:
-      - service: input_boolean.turn_on
-        target:
-          entity_id: input_boolean.climate_manual_override_active
-      - service: input_datetime.set_datetime
-        target:
-          entity_id: input_datetime.climate_override_expiry
-        data:
-          datetime: >
-            {{ (now() + timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S') }}
-      - service: logbook.log
-        data:
-          name: "Climate Control"
-          message: "Manual override detected. Holding for 2 hours."
-
-  - alias: "climate_manual_override_expire"
-    id: "climate_manual_override_expire"
-    description: "Resume automation after 2-hour manual override hold"
-    trigger:
-      - platform: template
-        value_template: >
-          {{ states('input_boolean.climate_manual_override_active') == 'on' and
-             states('input_datetime.climate_override_expiry') != 'unknown' and
-             now() >= strptime(states('input_datetime.climate_override_expiry'),
-                               '%Y-%m-%d %H:%M:%S') }}
-    condition:
-      - condition: state
-        entity_id: input_boolean.climate_automation_enabled
-        state: "on"
-    action:
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.climate_manual_override_active
-      - service: logbook.log
-        data:
-          name: "Climate Control"
-          message: "Manual override expired. Resuming automated schedule."
-
-  - alias: "climate_manual_override_clear"
-    id: "climate_manual_override_clear"
-    description: "Allow user to manually clear override via automation trigger"
-    trigger:
-      - platform: state
-        entity_id: input_boolean.climate_automation_enabled
-        from: "off"
-        to: "on"
-    condition:
-      - condition: state
-        entity_id: input_boolean.climate_manual_override_active
-        state: "on"
-    action:
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.climate_manual_override_active
-      - service: logbook.log
-        data:
-          name: "Climate Control"
-          message: "Manual override cleared by user."
-
-# Optional script for easy override clearing
-script:
-  climate_clear_override:
-    alias: "Clear Climate Override"
-    description:
-      "Manually clear the climate automation override and resume schedule"
-    sequence:
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.climate_manual_override_active
-      - service: logbook.log
-        data:
-          name: "Climate Control"
-          message: "Manual override cleared via script."
