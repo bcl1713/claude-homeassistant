@@ -22,25 +22,43 @@ command_exists() {
 
 echo "🔍 Checking prerequisites..."
 
-# Check if Python 3.8+ is available
-if ! command_exists python3; then
+# Check if Python 3.12+ is available (required by Home Assistant 2024.x)
+# Prefer python3.12 binary when available, then fall back to python3
+if command_exists python3.12; then
+    PYTHON_CMD="python3.12"
+elif command_exists python3; then
+    PYTHON_CMD="python3"
+else
     echo "❌ Python 3 is not installed."
-    echo "Please install Python from https://www.python.org/downloads/"
-    echo "Or use Homebrew: brew install python3"
+    echo ""
+    echo "Install Python 3.12+ via Homebrew (recommended):"
+    echo "   brew install python@3.12"
+    echo ""
+    echo "Then run this script again."
     exit 1
 fi
 
-# Check Python version
-PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-REQUIRED_VERSION="3.8"
+# Check Python version - Home Assistant 2024.x requires Python 3.12+
+PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
 
-if ! python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)"; then
-    echo "❌ Python $PYTHON_VERSION found, but Python 3.8+ is required."
-    echo "Please upgrade Python from https://www.python.org/downloads/"
+if ! $PYTHON_CMD -c "import sys; exit(0 if sys.version_info >= (3, 12) else 1)"; then
+    echo "❌ Python $PYTHON_VERSION found, but Python 3.12+ is required."
+    echo ""
+    echo "Home Assistant 2024.x requires Python 3.12 or newer."
+    echo "The system Python from Xcode Command Line Tools is typically too old"
+    echo "and may cause build errors with C extensions."
+    echo ""
+    echo "Install Python 3.12+ via Homebrew:"
+    echo "   brew install python@3.12"
+    echo ""
+    echo "After installation, ensure Homebrew Python is in your PATH:"
+    echo "   export PATH=\"/opt/homebrew/bin:\$PATH\""
+    echo ""
+    echo "Then run this script again."
     exit 1
 fi
 
-echo "✅ Python $PYTHON_VERSION found"
+echo "✅ Python $PYTHON_VERSION found (using $PYTHON_CMD)"
 
 # Check if git is available
 if ! command_exists git; then
@@ -72,13 +90,26 @@ fi
 
 echo "✅ SSH found"
 
+# Check for rsync (required for make pull/push)
+if command_exists rsync; then
+    echo "✅ Rsync found"
+else
+    echo "❌ Rsync is not installed."
+    echo ""
+    echo "Install rsync via Homebrew:"
+    echo "   brew install rsync"
+    echo ""
+    echo "Then run this script again."
+    exit 1
+fi
+
 echo ""
 echo "🐍 Setting up Python environment..."
 
 # Create virtual environment
 if [ ! -d "venv" ]; then
     echo "Creating Python virtual environment..."
-    python3 -m venv venv
+    $PYTHON_CMD -m venv venv
 else
     echo "Virtual environment already exists"
 fi
@@ -101,10 +132,10 @@ echo "🔍 Verifying Python environment..."
 # Verify critical dependencies are importable
 VERIFY_FAILED=false
 
-python3 -c "import yaml" 2>/dev/null || { echo "❌ PyYAML not installed correctly"; VERIFY_FAILED=true; }
-python3 -c "import voluptuous" 2>/dev/null || { echo "❌ Voluptuous not installed correctly"; VERIFY_FAILED=true; }
-python3 -c "import jsonschema" 2>/dev/null || { echo "❌ jsonschema not installed correctly"; VERIFY_FAILED=true; }
-python3 -c "import requests" 2>/dev/null || { echo "❌ requests not installed correctly"; VERIFY_FAILED=true; }
+python -c "import yaml" 2>/dev/null || { echo "❌ PyYAML not installed correctly"; VERIFY_FAILED=true; }
+python -c "import voluptuous" 2>/dev/null || { echo "❌ Voluptuous not installed correctly"; VERIFY_FAILED=true; }
+python -c "import jsonschema" 2>/dev/null || { echo "❌ jsonschema not installed correctly"; VERIFY_FAILED=true; }
+python -c "import requests" 2>/dev/null || { echo "❌ requests not installed correctly"; VERIFY_FAILED=true; }
 
 if [ "$VERIFY_FAILED" = true ]; then
     echo ""
