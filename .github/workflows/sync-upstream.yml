@@ -46,20 +46,13 @@ jobs:
       - name: 📝 Create Issue on Merge Failure
         # Only runs if the previous step's output was 'failure'
         if: steps.merge_attempt.outputs.merge_status == 'failure'
-        uses: peter-evans/create-or-update-issue@v4
+        uses: actions/github-script@v7
         with:
-          # Use the default GITHUB_TOKEN for creating the issue (it has permission)
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "🚨 Upstream Sync Failed: Manual Merge Required"
-          body: |
-            The daily sync from the upstream branch (`main`) failed to perform a clean fast-forward merge into the local branch (`main`).
-
-            **Manual intervention is required.**
-
-            Please resolve the conflicts and update the local branch. The upstream remote is aliased as `upstream`.
-
-            * **Upstream:** `upstream/main`
-            * **Local:** `main`
-          labels: |
-            bug
-            sync-failure
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Upstream Sync Failed: Manual Merge Required',
+              body: `The daily sync from the upstream branch (\`main\`) failed to perform a clean fast-forward merge into the local branch (\`main\`).\n\n**Manual intervention is required.**\n\nPlease resolve the conflicts and update the local branch. The upstream remote is aliased as \`upstream\`.\n\n* **Upstream:** \`upstream/main\`\n* **Local:** \`main\``,
+              labels: ['bug', 'sync-failure']
+            });
