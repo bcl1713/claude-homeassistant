@@ -32,13 +32,13 @@ jobs:
           UPSTREAM_BRANCH="main" 
           LOCAL_BRANCH="main"    
 
-          if git merge --ff-only upstream/$UPSTREAM_BRANCH -m "chore(sync): Sync with upstream $UPSTREAM_BRANCH"; then
-            echo "Clean fast-forward merge successful. Pushing changes."
+          if git merge upstream/$UPSTREAM_BRANCH -m "chore(sync): Sync with upstream $UPSTREAM_BRANCH"; then
+            echo "Merge successful. Pushing changes."
             git push origin $LOCAL_BRANCH
             echo "Push complete."
             echo "merge_status=success" >> $GITHUB_OUTPUT # Set output variable
           else
-            echo "Merge conflict detected or fast-forward not possible. Setting output for issue creation."
+            echo "Merge conflict detected. Setting output for issue creation."
             echo "merge_status=failure" >> $GITHUB_OUTPUT # Set output variable
             exit 0 # Exit successfully so the next steps run, but they'll check the output
           fi
@@ -53,6 +53,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: '🚨 Upstream Sync Failed: Manual Merge Required',
-              body: `The daily sync from the upstream branch (\`main\`) failed to perform a clean fast-forward merge into the local branch (\`main\`).\n\n**Manual intervention is required.**\n\nPlease resolve the conflicts and update the local branch. The upstream remote is aliased as \`upstream\`.\n\n* **Upstream:** \`upstream/main\`\n* **Local:** \`main\``,
+              body: `The daily sync from the upstream branch (\`main\`) failed due to merge conflicts with the local branch (\`main\`).\n\n**Manual intervention is required.**\n\nPlease resolve the conflicts and update the local branch. The upstream remote is aliased as \`upstream\`.\n\n* **Upstream:** \`upstream/main\`\n* **Local:** \`main\``,
               labels: ['bug', 'sync-failure']
             });
